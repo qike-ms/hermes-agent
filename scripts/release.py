@@ -1106,7 +1106,7 @@ AUTHOR_MAP = {
     "1434494126@qq.com": "5park1e",
     "158153005+5park1e@users.noreply.github.com": "5park1e",
     "innocarpe@gmail.com": "innocarpe",
-    "noreply@ked.com": "qike-ms",
+    "36968052+qike-ms@users.noreply.github.com": "qike-ms",
     "andrekurait@gmail.com": "AndreKurait",
     "bsgdigital@users.noreply.github.com": "bsgdigital",
     "numman.ali@gmail.com": "nummanali",

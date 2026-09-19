@@ -617,6 +617,37 @@ def test_complete_task_persists_scratch_artifacts_before_cleanup(kanban_home):
     ]
 
 
+def test_complete_task_deduplicates_equivalent_scratch_artifact_declarations(kanban_home):
+    """Mixed explicit/legacy declarations preserve one logical artifact once."""
+    with kbc.connect() as conn:
+        t = kb.create_task(conn, title="render chart")
+        task = kb.get_task(conn, t)
+        ws = kbw.resolve_workspace(task)
+        kbw.set_workspace_path(conn, t, ws)
+        artifact = ws / "chart.png"
+        artifact.write_bytes(b"png-bytes")
+        alias = ws / "chart-alias.png"
+        alias.symlink_to(artifact)
+
+        assert kb.complete_task(
+            conn,
+            t,
+            summary=f"Rendered {artifact}",
+            metadata={"artifacts": [
+                str(artifact), str(ws / "." / "chart.png"), str(alias),
+            ]},
+        )
+        completed = [e for e in kb.list_events(conn, t) if e.kind == "completed"][-1]
+        task = kb.get_task(conn, t)
+        attachments = kb.list_attachments(conn, t)
+
+    assert len(completed.payload["artifacts"]) == 1
+    assert len(attachments) == 1
+    assert attachments[0].filename == "chart.png"
+    assert task.result == completed.payload["summary"]
+    assert task.result
+
+
 
 
 # ---------------------------------------------------------------------------

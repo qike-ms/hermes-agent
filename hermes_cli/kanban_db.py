@@ -2537,6 +2537,10 @@ def complete_task(
     :class:`HallucinatedCardsError` after an auditable event; afterwards the
     prose is scanned for unresolvable ``t_<hex>`` refs (advisory event only).
     """
+    if summary is not None and result is None:
+        # Modern workers prefer structured summary/metadata, but downstream
+        # consumers still use tasks.result as the explicit result field.
+        result = summary
     now = int(time.time())
     # Cheap pre-check; re-checked inside the txn to close the parent-reopen race.
     if not _parents_satisfied(conn, task_id):
@@ -2753,6 +2757,7 @@ def _persist_scratch_completion_artifacts(
     attachment_dir = task_attachments_dir(task_id, board=board)
     persisted: list[str] = []
     used_destinations: set[Path] = set()
+    seen_sources: set[Path] = set()
     changed = False
 
     def _discard_copies() -> None:
@@ -2776,6 +2781,12 @@ def _persist_scratch_completion_artifacts(
         if not resolved_src.is_relative_to(workspace_root):
             persisted.append(artifact)
             continue
+
+        # Equivalent path spellings and symlink aliases identify one logical
+        # artifact. Deduplicate before copying so suffix duplicates never land.
+        if resolved_src in seen_sources:
+            continue
+        seen_sources.add(resolved_src)
 
         problem = None
         if not src.is_file():
